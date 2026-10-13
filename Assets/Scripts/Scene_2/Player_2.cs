@@ -1,0 +1,241 @@
+//using System.Collections;
+//using System.Collections.Generic;
+//using UnityEngine;
+
+//public class Player_2 : MonoBehaviour
+//{
+//    // Camera Rotation
+//    [SerializeField] float mouseSensitivity = 2f;
+//    private float verticalRotation = 0f;
+//    private float verticalPosition = 0f;
+//    private Transform cameraTransform;
+    
+//    // Ground Movement
+//    private Rigidbody rb;
+//    [SerializeField] float MoveSpeed = 5f;
+//    private float moveHorizontal;
+//    private float moveForward;
+
+//    // Jumping
+//    [SerializeField] float jumpForce = 10f;
+//    [SerializeField] float fallMultiplier = 2.5f; // Multiplies gravity when falling down
+//    [SerializeField] float ascendMultiplier = 1f; // Multiplies gravity for ascending to peak of jump
+//    private bool isGrounded = true;
+//    [SerializeField] LayerMask groundLayer;
+//    private float groundCheckTimer = 0f;
+//    private float groundCheckDelay = 0.3f;
+//    private float playerHeight;
+//    private float raycastDistance;
+
+//    // Animation
+//    private Animator animator;
+//    private string currentAnimation = "";
+//    private int currentIdle = 0;
+
+//    void Start()
+//    {
+//        rb = GetComponent<Rigidbody>();
+//        rb.freezeRotation = true;
+//        cameraTransform = Camera.main.transform;
+
+//        // Set the raycast to be slightly beneath the player's feet
+//        playerHeight = GetComponent<CapsuleCollider>().height * transform.localScale.y;
+//        raycastDistance = (playerHeight / 2) + 0.2f;
+
+//        // Hides the mouse
+//        Cursor.lockState = CursorLockMode.Locked;
+//        Cursor.visible = false;
+
+//        // Animation
+//        animator = GetComponent<Animator>();
+//        StartCoroutine(ChangeIdle());
+//        IEnumerator ChangeIdle()
+//        {
+//            while (true)
+//            {
+//                yield return new WaitForSeconds(5);
+//                ++currentIdle;
+//                if (currentIdle >= 2)
+//                {
+//                    currentIdle = 0;
+//                }
+//            }
+//        }
+
+//    }
+
+//    void Update()
+//    {
+//        moveHorizontal = Input.GetAxisRaw("Horizontal");
+//        moveForward = Input.GetAxisRaw("Vertical");
+
+//        RotateCamera();
+
+//        if (Input.GetButtonDown("Jump") && isGrounded)
+//        {
+//            Jump();
+//        }
+
+//        // Checking when we're on the ground and keeping track of our ground check delay
+//        if (!isGrounded && groundCheckTimer <= 0f)
+//        {
+//            Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
+//            isGrounded = Physics.Raycast(rayOrigin, Vector3.down, raycastDistance, groundLayer);
+//        }
+//        else
+//        {
+//            groundCheckTimer -= Time.deltaTime;
+//        }
+
+//        // Animation
+//        CheckAnimation();
+//        if (isGrounded && Input.GetKeyDown(KeyCode.Mouse0))
+//        {
+//            ChangeAnimation("PunchLeft");
+//        }
+//        if (isGrounded && Input.GetKeyDown(KeyCode.Mouse1))
+//        {
+//            ChangeAnimation("BlockingLoop");
+//        }
+
+//    }
+
+//    private void CheckAnimation()
+//    {
+//        if (currentAnimation == "BlockingLoop" || currentAnimation == "Jump" || currentAnimation == "PunchLeft")
+//        {
+//            return;
+//        }
+
+//        if(moveForward == 1)
+//        {
+//            ChangeAnimation("RunForward");
+//        } 
+//        else if(moveForward == -1)
+//        {
+//            ChangeAnimation("RunBackward");
+//        }
+//        else if(moveHorizontal == 1)
+//        {
+//            ChangeAnimation("StrafeRight");
+//        }
+//        else if(moveHorizontal == -1)
+//        {
+//            ChangeAnimation("StrafeLeft");
+//        }
+//        else
+//        {
+//            CheckIdle();
+//        }
+
+//        void CheckIdle()
+//        {
+//            switch (currentIdle)
+//            {
+//                case 0:
+//                    ChangeAnimation("Idle");
+//                    break;
+//                case 1:
+//                    ChangeAnimation("IdleCombat");
+//                    break;
+//            }
+//        }
+//    }
+
+//    // This function can ChangeAnimation to next animation.
+//    public void ChangeAnimation(string animation, float crossfade = 0.2f, float time = 0)
+//    {
+//        if (time > 0)
+//        {
+//            StartCoroutine(Wait());
+//        }
+//        else
+//        {
+//            Validate();
+//        }
+
+//        IEnumerator Wait()
+//        {
+//            yield return new WaitForSeconds(time - crossfade);
+//            Validate();
+//        }
+        
+//        void Validate()
+//        {
+//            if(currentAnimation != animation)
+//            {
+//            currentAnimation = animation;
+//            if (currentAnimation == "")
+//                {
+//                    CheckAnimation();
+//                }
+//            else
+//                {
+//                    animator.CrossFade(animation, crossfade);
+//                }
+//            }
+//        }
+//    }
+
+//    void FixedUpdate()
+//    {
+//        MovePlayer();
+//        ApplyJumpPhysics();
+//    }
+
+//    void MovePlayer()
+//    {
+
+//        Vector3 movement = (transform.right * moveHorizontal + transform.forward * moveForward).normalized;
+//        Vector3 targetVelocity = movement * MoveSpeed;
+
+//        // Apply movement to the Rigidbody
+//        Vector3 velocity = rb.linearVelocity;
+//        velocity.x = targetVelocity.x;
+//        velocity.z = targetVelocity.z;
+//        rb.linearVelocity = velocity;
+
+
+//        // If we aren't moving and are on the ground, stop velocity so we don't slide
+//        if (isGrounded && moveHorizontal == 0 && moveForward == 0)
+//        {
+//            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+//        }
+//    }
+
+//    void RotateCamera()
+//    {
+//        float horizontalRotation = Input.GetAxis("Mouse X") * mouseSensitivity;
+//        transform.Rotate(0, horizontalRotation, 0);
+
+//        verticalRotation -= Input.GetAxis("Mouse Y") * mouseSensitivity;
+//        verticalRotation = Mathf.Clamp(verticalRotation, -40f, 20f);
+//        verticalPosition = Mathf.Clamp(verticalRotation, 0.2f, 2f);
+
+//        cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0, 0);
+//        cameraTransform.localPosition = new Vector3(0, verticalPosition, -2);
+//    }
+
+//    void Jump()
+//    {
+//        isGrounded = false;
+//        groundCheckTimer = groundCheckDelay;
+//        rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z); // Initial burst for the jump
+//        // Animation
+//        ChangeAnimation("Jump");
+//    }
+
+//    void ApplyJumpPhysics()
+//    {
+//        if (rb.linearVelocity.y < 0) 
+//        {
+//            // Falling: Apply fall multiplier to make descent faster
+//            rb.linearVelocity += Vector3.up * Physics.gravity.y * fallMultiplier * Time.fixedDeltaTime;
+//        } // Rising
+//        else if (rb.linearVelocity.y > 0)
+//        {
+//            // Rising: Change multiplier to make player reach peak of jump faster
+//            rb.linearVelocity += Vector3.up * Physics.gravity.y * ascendMultiplier  * Time.fixedDeltaTime;
+//        }
+//    }
+//}
